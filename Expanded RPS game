@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+import random
+
+# ANSI Colors
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
+
+moves = ['rock', 'paper', 'scissors', 'lizard', 'spock']
+
+
+class Player:
+    def move(self):
+        return 'rock'
+
+    def learn(self, my_move, their_move):
+        pass
+
+
+class RandomPlayer(Player):
+    def move(self):
+        return random.choice(moves)
+
+
+class HumanPlayer(Player):
+    def move(self):
+        while True:
+            choice = input(
+                CYAN + "Rock, Paper, Scissors, Lizard, or Spock? " + RESET
+            ).lower()
+            if choice in moves:
+                return choice
+            print(RED + "Invalid move. Try again." + RESET)
+
+
+class ReflectPlayer(Player):
+    def __init__(self):
+        self.last_opponent_move = None
+
+    def move(self):
+        if self.last_opponent_move is None:
+            return random.choice(moves)
+        return self.last_opponent_move
+
+    def learn(self, my_move, their_move):
+        self.last_opponent_move = their_move
+
+
+class CyclePlayer(Player):
+    def __init__(self):
+        self.last_move = None
+
+    def move(self):
+        if self.last_move is None:
+            return random.choice(moves)
+        index = moves.index(self.last_move)
+        return moves[(index + 1) % len(moves)]
+
+    def learn(self, my_move, their_move):
+        self.last_move = my_move
+
+
+def beats(one, two):
+    return (
+        (one == 'rock' and two in ['scissors', 'lizard']) or
+        (one == 'paper' and two in ['rock', 'spock']) or
+        (one == 'scissors' and two in ['paper', 'lizard']) or
+        (one == 'lizard' and two in ['paper', 'spock']) or
+        (one == 'spock' and two in ['rock', 'scissors'])
+    )
+
+
+class Game:
+    def __init__(self, p1, p2, rounds=3):
+        self.p1 = p1
+        self.p2 = p2
+        self.p1_score = 0
+        self.p2_score = 0
+        self.rounds = rounds
+
+    def play_round(self, round_number):
+        print(YELLOW + f"\nRound {round_number}:" + RESET)
+        move1 = self.p1.move()
+        move2 = self.p2.move()
+        print(f"Player 1: {CYAN}{move1}{RESET}  Player 2: {CYAN}{move2}{RESET}")
+
+        if beats(move1, move2):
+            print(GREEN + "Player 1 Wins the round!" + RESET)
+            self.p1_score += 1
+        elif beats(move2, move1):
+            print(GREEN + "Player 2 Wins the round!" + RESET)
+            self.p2_score += 1
+        else:
+            print(YELLOW + "Round Tied!" + RESET)
+
+        self.p1.learn(move1, move2)
+        self.p2.learn(move2, move1)
+
+        print(f"Scores → P1: {self.p1_score} | P2: {self.p2_score}")
+
+    def announce_winner(self):
+        print("\n" + CYAN + "Final Results:" + RESET)
+        print(f"P1: {self.p1_score}   P2: {self.p2_score}")
+
+        if self.p1_score > self.p2_score:
+            print(GREEN + "Player 1 Wins the game!" + RESET)
+        elif self.p2_score > self.p1_score:
+            print(GREEN + "Player 2 Wins the game!" + RESET)
+        else:
+            print(YELLOW + "The game is a tie!" + RESET)
+
+    def play_game(self):
+        print(CYAN + "\nGame Start!" + RESET)
+        for r in range(self.rounds):
+            self.play_round(r)
+        self.announce_winner()
+        print(CYAN + "Game Over!\n" + RESET)
+
+
+def choose_mode():
+    print(CYAN + "Welcome to Rock-Paper-Scissors-Lizard-Spock!" + RESET)
+    print("Type Starter, Easy, Medium, Hard, or Exit.")
+
+    while True:
+        mode = input("Select mode: ").lower()
+        if mode == "exit":
+            return None
+        if mode in ["starter", "easy", "medium", "hard"]:
+            return mode
+        print(RED + "Invalid choice. Try again." + RESET)
+
+
+def create_players(mode):
+    if mode == "starter":
+        return HumanPlayer(), Player()
+    if mode == "easy":
+        return HumanPlayer(), RandomPlayer()
+    if mode == "medium":
+        return HumanPlayer(), ReflectPlayer()
+    if mode == "hard":
+        return HumanPlayer(), CyclePlayer()
+
+
+if __name__ == '__main__':
+    while True:
+        mode = choose_mode()
+        if mode is None:
+            break
+
+        print(GREEN + f"{mode.capitalize()} Mode Selected!" + RESET)
+        p1, p2 = create_players(mode)
+        Game(p1, p2, rounds=3).play_game()
